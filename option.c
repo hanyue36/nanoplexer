@@ -13,6 +13,7 @@ void opt_init(opt_t *opt)
   opt->chunk_size = 400000000;
 
   opt->bc = (bc_t *)malloc(sizeof(bc_t));
+  memset(opt->bc, 0, sizeof(bc_t));
 }
 
 void opt_set_mat(int match, int mismatch, int8_t mat[25])
@@ -78,6 +79,7 @@ void opt_hash_bc(opt_t *opt, char **name)
       kh_val(opt->bc->h, k) = i++;
     }
   }
+  free(line);
   fclose(fp);
 
   opt->bc->file_num = i;
@@ -109,20 +111,19 @@ void opt_set_output(opt_t *opt, char **name)
 void opt_set_bc(opt_t *opt)
 {
   int i;
-  char **name = (char **)malloc(sizeof(char *) * 1024);
   int8_t len = INT8_MAX;
 
   opt_allocate_bc(opt, &len);
 
-  if (opt->dual)  opt_hash_bc(opt, name);
-
-  if (opt->dual) opt_set_output(opt, name);
-  else  opt_set_output(opt, opt->bc->name);
-
   if (opt->dual) {
+    char **name = (char **)malloc(sizeof(char *) * 1024);
+
+    opt_hash_bc(opt, name);
+    opt_set_output(opt, name);
+
     for(i = 0; i < opt->bc->file_num; i++)  free(name[i]);
     free(name);
-  }
+  } else opt_set_output(opt, opt->bc->name);
 
   if (!opt->flag) {
     int gap = (int)(len * ERR + 1);
@@ -164,6 +165,7 @@ void opt_free(opt_t *opt)
     for(k = kh_begin(bc->h); k != kh_end(bc->h); ++k)
       if (kh_exist(bc->h, k)) free((char*)kh_key(bc->h, k));
     kh_destroy(dual, bc->h);
+    free(opt->dual);
   }
   free(bc->ptr); free(bc->buffer); free(bc->offset);
   free(bc->name); free(bc->len);
