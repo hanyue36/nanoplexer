@@ -39,7 +39,7 @@ static int usage()
   fprintf(stderr, "-b -p must be specified.\n\n");
   fprintf(stderr, "Example:\n");
   fprintf(stderr, "demultiplexer -b barcode.fa -p /ouput/ input.fastq\n\n");
-  return 1;
+  return 0;
 }
 
 int main(int argc, char *argv[])
@@ -87,10 +87,7 @@ int main(int argc, char *argv[])
     }
   }
 
-  if (optind + 1 > argc) {
-    print_log("Please specify input fastq file.\n");
-    return usage();
-  }
+  if (optind + 1 > argc) return usage();
   if (!opt.fb) {
     print_log("Please specify barcode file.\n");
     return usage();
