@@ -20,7 +20,7 @@ static inline int64_t mm_parse_num(const char *str)
 
 static int usage()
 {
-  fprintf(stderr, "Usage: demultiplexer [options] input.fastq\n\n");
+  fprintf(stderr, "Usage: nanoplexer [options] input.fastq\n\n");
   fprintf(stderr, "Options:\n");
   fprintf(stderr, " -b  FILE    barcode file\n");
   fprintf(stderr, " -d  FILE    dual barcode pair file\n");
@@ -38,7 +38,7 @@ static int usage()
   fprintf(stderr, " -v          show version number\n\n");
   fprintf(stderr, "-b -p must be specified.\n\n");
   fprintf(stderr, "Example:\n");
-  fprintf(stderr, "demultiplexer -b barcode.fa -p /ouput/ input.fastq\n\n");
+  fprintf(stderr, "nanoplexer -b barcode.fa -p /ouput/ input.fastq\n\n");
   return 0;
 }
 

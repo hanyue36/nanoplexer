@@ -1,4 +1,4 @@
 *.a
 *.o
 a.out
-demultiplexer
+nanoplexer

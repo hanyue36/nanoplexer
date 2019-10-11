@@ -1,11 +1,11 @@
 CC=gcc
 CFLAGS=-g -Wall -O2 -Wno-unused-function
 
-PROGS=demultiplexer
+PROGS=nanoplexer
 
 all:$(PROGS)
 
-demultiplexer: main.c option.c barcode.c util.c ssw.c kthread.c demultiplex.h kseq.h khash.h ssw.h
+nanoplexer: main.c option.c barcode.c util.c ssw.c kthread.c demultiplex.h kseq.h khash.h ssw.h
 	$(CC) $(CFLAGS) -o $@ $^ -lz -lm -pthread
 
 clean:
