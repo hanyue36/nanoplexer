@@ -6,7 +6,21 @@
 git clone https://github.com/hanyue36/nanoplexer.git
 cd nanoplexer && make
 ```
-The only library dependency is zlib.
+The only library dependency is zlib
+
+
+##### Install with conda
+![conda_badge](
+https://anaconda.org/bioconda/nanoplexer/badges/version.svg)
+![conda_badge](https://anaconda.org/bioconda/nanoplexer/badges/latest_release_date.svg
+)
+![conda_badge](https://anaconda.org/bioconda/nanoplexer/badges/platforms.svg
+)
+![conda_badge](https://anaconda.org/bioconda/nanoplexer/badges/downloads.svg)
+```sh
+conda install -c bioconda nanoplexer
+```
+
 #### Usage examples
 - demultiplex data according to barcode file
 ```
