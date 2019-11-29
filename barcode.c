@@ -93,6 +93,7 @@ void aln_barcode(opt_t *opt, bseq1_t *seq)
   } else {
     if ((seq->score1 > seq->score2) && (seq->score1 > opt->score)) seq->idx = seq->idx1;
     else if ((seq->score1 < seq->score2) && (seq->score2 > opt->score)) seq->idx = seq->idx2;
+    else if (((seq->score1 == seq->score2) && (seq->score1 > opt->score)) && (seq->idx1 == seq->idx2)) seq->idx = seq->idx1;
   }
 }
 

@@ -24,9 +24,9 @@ conda install -c bioconda nanoplexer
 #### Usage examples
 - demultiplex data according to barcode file
 ```
-./nanoplexer -b barcode.fa -p output_path input.fastq
+./nanoplexer -b barcode.fa -p output_path -t 8 input.fastq
 ```
-- demutliplex data and output alignment information
+- demultiplex data and output alignment information
 ```
 ./nanoplexer -b barcode.fa -p output_path -l log input.fastq
 ```
