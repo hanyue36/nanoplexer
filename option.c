@@ -6,6 +6,8 @@ void opt_init(opt_t *opt)
 {
   memset(opt, 0, sizeof(opt_t));
 
+  opt->LEN = 150; opt->MASK_LEN = opt->LEN / 2;
+
   opt->match = 2; opt->mismatch = 2;
   opt->open = 3; opt->ext = 1;
 
@@ -99,11 +101,13 @@ void opt_set_output(opt_t *opt, char **name)
   bc->buffer = (char **)malloc(sizeof(char *) * (bc->file_num + 1));
   bc->offset = (int32_t *)calloc((bc->file_num + 1), sizeof(int32_t));
   for(i = 0; i < bc->file_num; i++) {
-    sprintf(tmp, "%s/%s.fastq", opt->path, name[i]);
+    if (opt->mode)  sprintf(tmp, "%s/%s.fasta", opt->path, name[i]);
+    else  sprintf(tmp, "%s/%s.fastq", opt->path, name[i]);
     bc->ptr[i] = fopen(tmp, "w");
     bc->buffer[i] = (char *)malloc(sizeof(char) * BUFSIZE);
   }
-  sprintf(tmp, "%s/unclassified.fastq", opt->path);
+  if (opt->mode)  sprintf(tmp, "%s/unclassified.fasta", opt->path);
+  else  sprintf(tmp, "%s/unclassified.fastq", opt->path);
   bc->ptr[bc->file_num] = fopen(tmp, "w");
   bc->buffer[bc->file_num] = (char *)malloc(sizeof(char) * BUFSIZE);
 }

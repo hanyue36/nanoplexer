@@ -23,9 +23,9 @@ bseq1_t *bseq_read(kseq_t *ks, int chunk_size, int *n_)
     }
     s = &seqs[n];
     s->name = strdup(ks->name.s); s->seq = strdup(ks->seq.s);
-    s->qual = strdup(ks->qual.s); s->comment = strdup(ks->comment.s);
     s->l_name = ks->name.l; s->l_seq = ks->seq.l;
-    s->l_qual = ks->qual.l; s->l_comment = ks->comment.l;
+    if (ks->qual.s)  s->qual = strdup(ks->qual.s), s->l_qual = ks->qual.l;
+    if (ks->comment.s) s->comment = strdup(ks->comment.s), s->l_comment = ks->comment.l;
     s->score1 = s->score2 = 0;
     size += seqs[n++].l_seq;
     if (size >= chunk_size) break;
@@ -43,16 +43,16 @@ void aln_core(char *seq, opt_t *opt, int *idx, int *strand, int *score)
   s_align *result;
 
   num = bc->idx;
-  int8_t *nt = seq_to_nt(seq, LEN, 0);
-  profile = ssw_init(nt, LEN, opt->mat, 5, 2);
+  int8_t *nt = seq_to_nt(seq, opt->LEN, 0);
+  profile = ssw_init(nt, opt->LEN, opt->mat, 5, 2);
 
   for(i = 0; i < num; i++) {
-    result = ssw_align(profile, bc->nt[i], bc->len[i], opt->open, opt->ext, 0, 0, 0, MASK_LEN);
+    result = ssw_align(profile, bc->nt[i], bc->len[i], opt->open, opt->ext, 0, 0, 0, opt->MASK_LEN);
     if (result->score1 > *score)  *idx = i, *strand = 0, *score = result->score1;
     align_destroy(result);
   }
   for(i = 0; i < num; i++) {
-    result = ssw_align(profile, bc->nt_rc[i], bc->len[i], opt->open, opt->ext, 0, 0, 0, MASK_LEN);
+    result = ssw_align(profile, bc->nt_rc[i], bc->len[i], opt->open, opt->ext, 0, 0, 0, opt->MASK_LEN);
     if (result->score1 > *score)  *idx = i, *strand = 1, *score = result->score1;
     align_destroy(result);
   }
@@ -64,12 +64,12 @@ void aln_core(char *seq, opt_t *opt, int *idx, int *strand, int *score)
 void aln_barcode(opt_t *opt, bseq1_t *seq)
 {
   seq->idx = opt->bc->file_num;
-  if (seq->l_seq <= LEN) return;
+  if (seq->l_seq <= opt->LEN) return;
 
-  char *front = (char *)calloc(LEN + 1, sizeof(char));
-  char *rear = (char *)calloc(LEN + 1, sizeof(char));
-  memcpy(front, seq->seq, LEN);
-  memcpy(rear, seq->seq + seq->l_seq - LEN, LEN);
+  char *front = (char *)calloc(opt->LEN + 1, sizeof(char));
+  char *rear = (char *)calloc(opt->LEN + 1, sizeof(char));
+  memcpy(front, seq->seq, opt->LEN);
+  memcpy(rear, seq->seq + seq->l_seq - opt->LEN, opt->LEN);
   aln_core(front, opt, &seq->idx1, &seq->strand1, &seq->score1);
   aln_core(rear, opt, &seq->idx2, &seq->strand2, &seq->score2);
   free(front); free(rear);
@@ -134,21 +134,28 @@ static void *worker_pipeline(void *shared, int step, void *_data)
       bseq1_t *s = &data->seqs[i];
       bc_t *bc = opt->bc;
 
-      if (opt->log && (s->l_seq > LEN)) {
+      if (opt->log && (s->l_seq > opt->LEN)) {
         fprintf(opt->log, "%s\t%s\t%c\t%d\t%s\t%c\t%d\n", \
         s->name, bc->name[s->idx1], "+-"[s->strand1], s->score1, \
         bc->name[s->idx2], "+-"[s->strand2], s->score2);
       }
 
-      sprintf(bc->buffer[s->idx] + bc->offset[s->idx], "@%s %s\n%s\n+\n%s\n", \
-      s->name, s->comment, s->seq, s->qual);
-      bc->offset[s->idx] += (s->l_name + s->l_seq + s->l_qual + s->l_comment + 7);
+      if (opt->mode) {
+        sprintf(bc->buffer[s->idx] + bc->offset[s->idx], ">%s\n%s\n", s->name, s->seq);
+        bc->offset[s->idx] += (s->l_name + s->l_seq + 3);
+      } else {
+        sprintf(bc->buffer[s->idx] + bc->offset[s->idx], "@%s %s\n%s\n+\n%s\n", \
+        s->name, s->comment, s->seq, s->qual);
+        bc->offset[s->idx] += (s->l_name + s->l_seq + s->l_qual + s->l_comment + 7);
+      }
       if (bc->offset[s->idx] > WRITESIZE) {
         bc->buffer[s->idx][bc->offset[s->idx]] = '\0';
         fprintf(bc->ptr[s->idx], "%s", bc->buffer[s->idx]);
         bc->offset[s->idx] = 0U;
       }
-      free(s->seq); free(s->qual); free(s->name); free(s->comment);
+      free(s->name); free(s->seq);
+      if (s->comment) free(s->comment);
+      if (s->qual)  free(s->qual);
     }
     free(data->seqs); free(data);
   }
