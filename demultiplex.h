@@ -13,8 +13,6 @@ KSEQ_INIT(gzFile, gzread)
 KHASH_MAP_INIT_STR(dual, int)
 
 #define ERR 0.15
-#define LEN 150
-#define MASK_LEN  (LEN/2)
 
 #define BUFSIZE 110000000U
 #define WRITESIZE 100000000U
@@ -37,7 +35,8 @@ typedef struct
 {
   char *fb, *path, *dual;
 
-  int n_threads, chunk_size;
+  int n_threads, chunk_size, mode;
+  int LEN, MASK_LEN;
 
   int match, mismatch;
   int open, ext;
