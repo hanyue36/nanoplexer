@@ -23,13 +23,11 @@ static int usage()
   fprintf(stderr, "Usage: nanoplexer [options] input.fastq\n\n");
   fprintf(stderr, "Options:\n");
   fprintf(stderr, " -b  FILE    barcode file\n");
-  fprintf(stderr, " -d  FILE    dual barcode pair file\n");
   fprintf(stderr, " -p  CHAR    output path\n");
   fprintf(stderr, " -l  FILE    output log file\n");
   fprintf(stderr, " -M  CHAR    output mode, fastq or fasta [default fastq]\n");
   fprintf(stderr, " -B  NUM     batch size [default 400M]\n");
   fprintf(stderr, " -t  INT     number of threads [default 3]\n");
-  fprintf(stderr, " -L  INT     target length for detecting barcode [default 150]\n");
   fprintf(stderr, " -m  INT     match score [default 2]\n");
   fprintf(stderr, " -x  INT     mismatch score [default 2]\n");
   fprintf(stderr, " -o  INT     gap open score [default 3]\n");
@@ -46,16 +44,14 @@ static int usage()
 
 int main(int argc, char *argv[])
 {
-  const char *optstring = "b:d:p:l:M:B:t:L:m:x:o:e:s:ihv";
+  const char *optstring = "b:p:l:M:B:t:m:x:o:e:s:ihv";
   static struct option long_options[] = {
     {"barcode", required_argument, 0, 'b'},
-    {"dual", optional_argument, 0, 'd'},
     {"path", required_argument, 0, 'p'},
     {"log", optional_argument, 0, 'l'},
     {"mode", optional_argument, 0, 'M'},
     {"batch", optional_argument, 0, 'B'},
     {"threads", optional_argument, 0, 't'},
-    {"length", optional_argument, 0, 'L'},
     {"match", optional_argument, 0, 'm'},
     {"mismatch", optional_argument, 0, 'x'},
     {"open", optional_argument, 0, 'o'},
@@ -74,7 +70,6 @@ int main(int argc, char *argv[])
   while((c = getopt_long(argc, argv, optstring, long_options, NULL)) != -1) {
     switch (c) {
       case 'b': opt.fb = strdup(optarg); break;
-      case 'd': opt.dual = strdup(optarg); break;
       case 'p': opt.path = strdup(optarg); break;
       case 'l': opt.log = fopen(optarg, "w"); break;
       case 'M':
@@ -82,7 +77,6 @@ int main(int argc, char *argv[])
         break;
       case 'B': opt.chunk_size = (int)mm_parse_num(optarg); break;
       case 't': opt.n_threads = atoi(optarg); break;
-      case 'L': opt.LEN = atoi(optarg); opt.MASK_LEN = opt.LEN / 2; break;
       case 'm': opt.match = atoi(optarg); break;
       case 'x': opt.mismatch = atoi(optarg); break;
       case 'o': opt.open = atoi(optarg); break;

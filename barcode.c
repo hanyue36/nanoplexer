@@ -34,7 +34,7 @@ bseq1_t *bseq_read(kseq_t *ks, int chunk_size, int *n_)
   return seqs;
 }
 
-void aln_core(char *seq, opt_t *opt, int *idx, int *strand, int *score)
+void aln_core(char *seq, int len, opt_t *opt, int *idx, int *strand, int *score)
 {
   int i, num;
   bc_t *bc = opt->bc;
@@ -43,16 +43,16 @@ void aln_core(char *seq, opt_t *opt, int *idx, int *strand, int *score)
   s_align *result;
 
   num = bc->idx;
-  int8_t *nt = seq_to_nt(seq, opt->LEN, 0);
-  profile = ssw_init(nt, opt->LEN, opt->mat, 5, 2);
+  int8_t *nt = seq_to_nt(seq, len, 0);
+  profile = ssw_init(nt, len, opt->mat, 5, 2);
 
   for(i = 0; i < num; i++) {
-    result = ssw_align(profile, bc->nt[i], bc->len[i], opt->open, opt->ext, 0, 0, 0, opt->MASK_LEN);
+    result = ssw_align(profile, bc->nt[i], bc->len[i], opt->open, opt->ext, 0, 0, 0, len / 2);
     if (result->score1 > *score)  *idx = i, *strand = 0, *score = result->score1;
     align_destroy(result);
   }
   for(i = 0; i < num; i++) {
-    result = ssw_align(profile, bc->nt_rc[i], bc->len[i], opt->open, opt->ext, 0, 0, 0, opt->MASK_LEN);
+    result = ssw_align(profile, bc->nt_rc[i], bc->len[i], opt->open, opt->ext, 0, 0, 0, len / 2);
     if (result->score1 > *score)  *idx = i, *strand = 1, *score = result->score1;
     align_destroy(result);
   }
@@ -64,37 +64,13 @@ void aln_core(char *seq, opt_t *opt, int *idx, int *strand, int *score)
 void aln_barcode(opt_t *opt, bseq1_t *seq)
 {
   seq->idx = opt->bc->file_num;
-  if (seq->l_seq <= opt->LEN) return;
 
-  char *front = (char *)calloc(opt->LEN + 1, sizeof(char));
-  char *rear = (char *)calloc(opt->LEN + 1, sizeof(char));
-  memcpy(front, seq->seq, opt->LEN);
-  memcpy(rear, seq->seq + seq->l_seq - opt->LEN, opt->LEN);
-  aln_core(front, opt, &seq->idx1, &seq->strand1, &seq->score1);
-  aln_core(rear, opt, &seq->idx2, &seq->strand2, &seq->score2);
-  free(front); free(rear);
+  aln_core(seq->seq, seq->l_seq, opt, &seq->idx1, &seq->strand1, &seq->score1);
+  aln_core(seq->seq, seq->l_seq, opt, &seq->idx2, &seq->strand2, &seq->score2);
 
-  if (opt->dual) {
-    if (seq->score1 > opt->score && seq->score2 > opt->score) {
-      bc_t *bc = opt->bc;
-      khint_t k; char tmp[1024];
-      if (seq->strand1 == 0 && seq->strand2 == 0) {
-        sprintf(tmp, "%s%s", bc->name[seq->idx1], bc->name[seq->idx2]);
-        tmp[bc->len[seq->idx1] + bc->len[seq->idx2]] = '\0';
-        k = kh_get(dual, bc->h, tmp);
-        if (k != kh_end(bc->h)) seq->idx = kh_val(bc->h, k);
-      } else if (seq->strand1 == 1 && seq->strand2 == 1) {
-        sprintf(tmp, "%s%s", bc->name[seq->idx2], bc->name[seq->idx1]);
-        tmp[bc->len[seq->idx2] + bc->len[seq->idx1]] = '\0';
-        k = kh_get(dual, bc->h, tmp);
-        if (k != kh_end(bc->h)) seq->idx = kh_val(bc->h, k);
-      }
-    }
-  } else {
-    if ((seq->score1 > seq->score2) && (seq->score1 > opt->score)) seq->idx = seq->idx1;
-    else if ((seq->score1 < seq->score2) && (seq->score2 > opt->score)) seq->idx = seq->idx2;
-    else if (((seq->score1 == seq->score2) && (seq->score1 > opt->score)) && (seq->idx1 == seq->idx2)) seq->idx = seq->idx1;
-  }
+  if ((seq->score1 > seq->score2) && (seq->score1 > opt->score)) seq->idx = seq->idx1;
+  else if ((seq->score1 < seq->score2) && (seq->score2 > opt->score)) seq->idx = seq->idx2;
+  else if (((seq->score1 == seq->score2) && (seq->score1 > opt->score)) && (seq->idx1 == seq->idx2)) seq->idx = seq->idx1;
 }
 
 void kt_for(int n_threads, void (*func)(void*,long,int), void *data, long n);
@@ -134,7 +110,7 @@ static void *worker_pipeline(void *shared, int step, void *_data)
       bseq1_t *s = &data->seqs[i];
       bc_t *bc = opt->bc;
 
-      if (opt->log && (s->l_seq > opt->LEN)) {
+      if (opt->log) {
         fprintf(opt->log, "%s\t%s\t%c\t%d\t%s\t%c\t%d\n", \
         s->name, bc->name[s->idx1], "+-"[s->strand1], s->score1, \
         bc->name[s->idx2], "+-"[s->strand2], s->score2);

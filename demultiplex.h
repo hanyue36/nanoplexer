@@ -10,7 +10,6 @@
 #include "khash.h"
 
 KSEQ_INIT(gzFile, gzread)
-KHASH_MAP_INIT_STR(dual, int)
 
 #define ERR 0.15
 
@@ -27,16 +26,13 @@ typedef struct
   char **buffer;
   int32_t *offset;
   int file_num;
-
-  khash_t(dual) *h;
 } bc_t;
 
 typedef struct 
 {
-  char *fb, *path, *dual;
+  char *fb, *path;
 
   int n_threads, chunk_size, mode;
-  int LEN, MASK_LEN;
 
   int match, mismatch;
   int open, ext;

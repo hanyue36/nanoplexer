@@ -6,8 +6,6 @@ void opt_init(opt_t *opt)
 {
   memset(opt, 0, sizeof(opt_t));
 
-  opt->LEN = 150; opt->MASK_LEN = opt->LEN / 2;
-
   opt->match = 2; opt->mismatch = 2;
   opt->open = 3; opt->ext = 1;
 
@@ -60,33 +58,6 @@ void opt_allocate_bc(opt_t *opt, int8_t *len)
   bc->file_num = bc->idx;
 }
 
-void opt_hash_bc(opt_t *opt, char **name)
-{
-  int i = 0;
-
-  khint_t k; int absent;
-  opt->bc->h = kh_init(dual);
-
-  FILE *fp = fopen(opt->dual, "r");
-  char *line = NULL; size_t len;
-  char fn[128], bc1[128], bc2[128], tmp[256];
-  while(getline(&line, &len, fp) != -1) {
-    sscanf(line, "%s\t%s\t%s", fn, bc1, bc2);
-    sprintf(tmp, "%s%s", bc1, bc2);
-    tmp[strlen(bc1) + strlen(bc2)] = '\0';
-    k = kh_put(dual, opt->bc->h, tmp, &absent);
-    if (absent) {
-      name[i] = strdup(fn);
-      kh_key(opt->bc->h, k) = strdup(tmp);
-      kh_val(opt->bc->h, k) = i++;
-    }
-  }
-  free(line);
-  fclose(fp);
-
-  opt->bc->file_num = i;
-}
-
 void opt_set_output(opt_t *opt, char **name)
 {
   if (access(opt->path, F_OK)) {
@@ -114,20 +85,11 @@ void opt_set_output(opt_t *opt, char **name)
 
 void opt_set_bc(opt_t *opt)
 {
-  int i;
   int8_t len = INT8_MAX;
 
   opt_allocate_bc(opt, &len);
 
-  if (opt->dual) {
-    char **name = (char **)malloc(sizeof(char *) * 1024);
-
-    opt_hash_bc(opt, name);
-    opt_set_output(opt, name);
-
-    for(i = 0; i < opt->bc->file_num; i++)  free(name[i]);
-    free(name);
-  } else opt_set_output(opt, opt->bc->name);
+  opt_set_output(opt, opt->bc->name);
 
   if (!opt->flag) {
     int gap = (int)(len * ERR + 1);
@@ -163,13 +125,6 @@ void opt_free(opt_t *opt)
   for(i = 0; i < bc->idx; i++) {
     free(bc->name[i]);
     free(bc->nt[i]); free(bc->nt_rc[i]);
-  }
-  if (opt->dual) {
-    khint_t k;
-    for(k = kh_begin(bc->h); k != kh_end(bc->h); ++k)
-      if (kh_exist(bc->h, k)) free((char*)kh_key(bc->h, k));
-    kh_destroy(dual, bc->h);
-    free(opt->dual);
   }
   free(bc->ptr); free(bc->buffer); free(bc->offset);
   free(bc->name); free(bc->len);
