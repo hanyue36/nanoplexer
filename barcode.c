@@ -95,8 +95,8 @@ void aln_barcode(opt_t *opt, bseq1_t *seq)
 
   //TODO: signal decrease
   float score = bc->score;
-  if ((seq->aln1[0].score > score && seq->aln3[0].score > score) \
-  && (seq->aln2[0].score < score)) {
+  if ((seq->aln1[0].ratio > score && seq->aln3[0].ratio > score) \
+  && (seq->aln2[0].ratio < score)) {
     khint_t k; char tmp[1024];
     sprintf(tmp, "%s%s", bc->name[seq->aln1[0].idx], bc->name[seq->aln3[0].idx]);
     tmp[bc->len[seq->aln1[0].idx] + bc->len[seq->aln3[0].idx]] = '\0';
