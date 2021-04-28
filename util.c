@@ -53,3 +53,9 @@ int8_t *seq_to_nt(char *seq, int len, int flag)
 
   return ret;
 }
+
+float min_score(opt_t *opt)
+{
+  float sw = opt->match * (1 - opt->err) - opt->open * opt->err;
+  return sw / (opt->match) * 100;
+}

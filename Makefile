@@ -5,7 +5,7 @@ PROGS=nanoplexer
 
 all:$(PROGS)
 
-nanoplexer: main.c option.c barcode.c util.c ssw.c kthread.c demultiplex.h kseq.h khash.h ssw.h
+nanoplexer: main.c option.c barcode.c util.c ssw.c kthread.c demultiplex.h kseq.h ssw.h ksort.h khash.h
 	$(CC) $(CFLAGS) -o $@ $^ -lz -lm -pthread
 
 clean:

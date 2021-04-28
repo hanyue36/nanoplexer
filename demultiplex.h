@@ -10,9 +10,7 @@
 #include "khash.h"
 
 KSEQ_INIT(gzFile, gzread)
-KHASH_MAP_INIT_STR(dual, int)
-
-#define ERR 0.15
+KHASH_MAP_INIT_STR(sample, int)
 
 #define BUFSIZE 110000000U
 #define WRITESIZE 100000000U
@@ -22,26 +20,25 @@ typedef struct
   char **name;
   int8_t **nt, **nt_rc, *len;
   int idx, capacity;
+  float score;
 
   FILE **ptr;
   char **buffer;
   int32_t *offset;
   int file_num;
 
-  khash_t(dual) *h;
+  khash_t(sample) *h;
+  //TODO: demultiplex summary
 } bc_t;
 
 typedef struct 
 {
-  char *fb, *path, *dual;
+  char *fb, *path, *fs;
 
-  int n_threads, chunk_size, mode;
-  int LEN, MASK_LEN;
-
-  int match, mismatch;
-  int open, ext;
   int8_t mat[25];
-  int score, flag;
+  int match, mismatch, open, ext;
+  int n_threads, chunk_size;
+  float err;
 
   FILE *log;
   kseq_t *ks;
@@ -59,6 +56,8 @@ void print_log(char *format, ...);
 void rc_seq(char *seq, int len);
 
 int8_t *seq_to_nt(char *seq, int len, int flag);
+
+float min_score(opt_t *opt);
 
 void demultiplex_data(opt_t *opt);
 

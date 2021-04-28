@@ -8,24 +8,20 @@ cd nanoplexer && make
 ```
 The only library dependency is zlib.
 #### Usage examples
-- demultiplex data according to barcode file
+- demultiplex pacbio data according to barcode file
 ```
-./nanoplexer -b barcode.fa -p output_path -t 8 input.fastq
+./nanoplexer -b barcode.fa -s sample.txt -p output_path -E 0.08 input.fastq
 ```
-- demultiplex data and output alignment information
+- demultiplex nanopore data and output alignment information
 ```
-./nanoplexer -b barcode.fa -p output_path -l log input.fastq
+./nanoplexer -b barcode.fa -s sample.txt -p output_path -E 0.15 -l log input.fastq
 ```
-- demultiplex data from stdin stream
+- demultiplex pacbio data from stdin stream
 ```
-cat sequence_id*.fastq | ./nanoplexer -b barcode.fa -p output_path -
-```
-- demultiplex data according to dual barcode file
-```
-./nanoplexer -b barcode.fa -d dual_barcode_pair.txt -p output_path input.fastq
+cat sequence_id*.fastq | ./nanoplexer -b barcode.fa -s sample.txt -p output_path -E 0.08 -
 ```
 #### FAQ
-- Format for dual barcode pair file
+- Format for barcode combination file
 <br/>Tab-delimited for each line: output file name, 5' barcode name, 3' barcode name
 
 #### Getting Help
