@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <zlib.h>
 #include "kseq.h"
 #include "khash.h"
@@ -20,7 +21,7 @@ typedef struct
   char **name;
   int8_t **nt, **nt_rc, *len;
   int idx, capacity;
-  float score;
+  int *score;
 
   FILE **ptr;
   char **buffer;
@@ -57,7 +58,7 @@ void rc_seq(char *seq, int len);
 
 int8_t *seq_to_nt(char *seq, int len, int flag);
 
-float min_score(opt_t *opt);
+int min_score(int len, opt_t *opt);
 
 void demultiplex_data(opt_t *opt);
 

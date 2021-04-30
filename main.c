@@ -68,7 +68,13 @@ int main(int argc, char *argv[])
     switch (c) {
       case 'b': opt.fb = strdup(optarg); break;
       case 's': opt.fs = strdup(optarg); break;
-      case 'p': opt.path = strdup(optarg); break;
+      case 'p':
+        opt.path = strdup(optarg);
+        if (access(opt.path, F_OK)) {
+          int status = mkdir(opt.path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+          if (status) print_log("Failed to create output dir %s.", opt.path), exit(1);
+        }
+        break;
       case 'l': opt.log = fopen(optarg, "w"); break;
       case 'B': opt.chunk_size = (int)mm_parse_num(optarg); break;
       case 't': opt.n_threads = atoi(optarg); break;

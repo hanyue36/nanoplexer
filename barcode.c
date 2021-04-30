@@ -59,14 +59,14 @@ void aln_core(char *seq, opt_t *opt, aln_t *aln)
     result = ssw_align(profile, bc->nt[i], bc->len[i], opt->open, opt->ext, 0, 0, 0, len / 2);
     aln[i].idx = i; aln[i].strand = 0;
     aln[i].pos = result->read_end1; aln[i].score = result->score1;
-    aln[i].ratio = (float)(result->score1) * 100 / (opt->match * bc->len[i]);
+    aln[i].ratio = (float)result->score1 / bc->score[i];
     align_destroy(result);
   }
   for(i = 0; i < num; i++) {
     result = ssw_align(profile, bc->nt_rc[i], bc->len[i], opt->open, opt->ext, 0, 0, 0, len / 2);
     aln[num + i].idx = i; aln[num + i].strand = 1;
     aln[num + i].pos = result->read_end1; aln[num + i].score = result->score1;
-    aln[num + i].ratio = (float)(result->score1) * 100 / (opt->match * bc->len[i]);
+    aln[num + i].ratio = (float)result->score1 / bc->score[i];
     align_destroy(result);
   }
 
@@ -94,9 +94,8 @@ void aln_barcode(opt_t *opt, bseq1_t *seq)
   free(front); free(middle); free(rear);
 
   //TODO: signal decrease
-  float score = bc->score;
-  if ((seq->aln1[0].ratio > score && seq->aln3[0].ratio > score) \
-  && (seq->aln2[0].ratio < score)) {
+  if ((seq->aln1[0].ratio >= 1 && seq->aln3[0].ratio >= 1) \
+  && (seq->aln2[0].ratio <= 1)) {
     khint_t k; char tmp[1024];
     sprintf(tmp, "%s%s", bc->name[seq->aln1[0].idx], bc->name[seq->aln3[0].idx]);
     tmp[bc->len[seq->aln1[0].idx] + bc->len[seq->aln3[0].idx]] = '\0';
@@ -108,6 +107,14 @@ void aln_barcode(opt_t *opt, bseq1_t *seq)
     if (k != kh_end(bc->h)) seq->idx = kh_val(bc->h, k);
   }
 }
+
+void log_output(opt_t *opt, aln_t *aln, int flag)
+{
+  fprintf(opt->log, "%s\t%c\t%d\t%d\t%.2f%c", \
+  opt->bc->name[aln->idx], "+-"[aln->strand], \
+  aln->pos, aln->score, aln->ratio, "\t\n"[flag]);
+}
+
 
 void kt_for(int n_threads, void (*func)(void*,long,int), void *data, long n);
 void kt_pipeline(int n_threads, void *(*func)(void*, int, void*), void *shared_data, int n_steps);
@@ -147,24 +154,9 @@ static void *worker_pipeline(void *shared, int step, void *_data)
       bc_t *bc = opt->bc;
       if (opt->log && (s->l_seq > 450)) {
         fprintf(opt->log, "%s\t%d\t", s->name, s->l_seq);
-        fprintf(opt->log, "%s\t%c\t%d\t%d\t%.2f\t", \
-        bc->name[s->aln1[0].idx], "+-"[s->aln1[0].strand], \
-        s->aln1[0].pos, s->aln1[0].score, s->aln1[0].ratio);
-        fprintf(opt->log, "%s\t%c\t%d\t%d\t%.2f\t", \
-        bc->name[s->aln1[1].idx], "+-"[s->aln1[1].strand], \
-        s->aln1[1].pos, s->aln1[1].score, s->aln1[1].ratio);
-        fprintf(opt->log, "%s\t%c\t%d\t%d\t%.2f\t", \
-        bc->name[s->aln2[0].idx], "+-"[s->aln2[0].strand], \
-        s->aln2[0].pos, s->aln2[0].score, s->aln2[0].ratio);
-        fprintf(opt->log, "%s\t%c\t%d\t%d\t%.2f\t", \
-        bc->name[s->aln2[1].idx], "+-"[s->aln2[1].strand], \
-        s->aln2[1].pos, s->aln2[1].score, s->aln2[1].ratio);
-        fprintf(opt->log, "%s\t%c\t%d\t%d\t%.2f\t", \
-        bc->name[s->aln3[0].idx], "+-"[s->aln3[0].strand], \
-        s->aln3[0].pos, s->aln3[0].score, s->aln3[0].ratio);
-        fprintf(opt->log, "%s\t%c\t%d\t%d\t%.2f\n", \
-        bc->name[s->aln3[1].idx], "+-"[s->aln3[1].strand], \
-        s->aln3[1].pos, s->aln3[1].score, s->aln3[1].ratio);
+        log_output(opt, &(s->aln1[0]), 0); log_output(opt, &(s->aln1[1]), 0);
+        log_output(opt, &(s->aln2[0]), 0); log_output(opt, &(s->aln2[1]), 0);
+        log_output(opt, &(s->aln3[0]), 0); log_output(opt, &(s->aln3[1]), 1);
       }
       sprintf(bc->buffer[s->idx] + bc->offset[s->idx], "@%s\n%s\n+\n%s\n", \
       s->name, s->seq, s->qual);

@@ -1,6 +1,5 @@
 #include "demultiplex.h"
 #include <unistd.h>
-#include <sys/stat.h>
 
 void opt_init(opt_t *opt)
 {
@@ -35,6 +34,7 @@ void opt_allocate_bc(opt_t *opt)
   bc->len = (int8_t *)malloc(sizeof(int8_t) * 16);
   bc->nt = (int8_t **)malloc(sizeof(int8_t *) * 16);
   bc->nt_rc = (int8_t **)malloc(sizeof(int8_t *) * 16);
+  bc->score = (int *)malloc(sizeof(int) * 16);
   gzFile fp = gzopen(opt->fb, "r");
   kseq_t *seq = kseq_init(fp);
   while(kseq_read(seq) >= 0) {
@@ -44,26 +44,21 @@ void opt_allocate_bc(opt_t *opt)
       bc->len = (int8_t *)realloc(bc->len, sizeof(int8_t) * bc->capacity);
       bc->nt = (int8_t **)realloc(bc->nt, sizeof(int8_t *) * bc->capacity);
       bc->nt_rc = (int8_t **)realloc(bc->nt_rc, sizeof(int8_t *) * bc->capacity);
+      bc->score = (int *)realloc(bc->score, sizeof(int) * bc->capacity);
     }
     bc->name[bc->idx] = strdup(seq->name.s);
     bc->len[bc->idx] = seq->seq.l;
     bc->nt[bc->idx] = seq_to_nt(seq->seq.s, seq->seq.l, 0);
     bc->nt_rc[bc->idx] = seq_to_nt(seq->seq.s, seq->seq.l, 1);
+    bc->score[bc->idx] = min_score(seq->seq.l, opt);
     bc->idx += 1;
   }
   kseq_destroy(seq);
   gzclose(fp);
-
-  bc->score = min_score(opt);
 }
 
 void opt_hash_bc(opt_t *opt)
 {
-  if (access(opt->path, F_OK)) {
-    int status = mkdir(opt->path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    if (status) print_log("Failed to create output dir %s.", opt->path), exit(1);
-  }
-
   int i = 0; char fname[1024];
   khint_t k; int absent;
   bc_t *bc = opt->bc;
@@ -103,8 +98,6 @@ void opt_set_bc(opt_t *opt)
   opt_allocate_bc(opt);
 
   opt_hash_bc(opt);
-
-  print_log("Minimal demultiplex score is %.2f.", opt->bc->score);
 }
 
 void opt_set(opt_t *opt, char *fn)
@@ -144,7 +137,7 @@ void opt_free(opt_t *opt)
   free(bc->ptr); free(bc->buffer); free(bc->offset);
   free(bc->name); free(bc->len);
   free(bc->nt); free(bc->nt_rc);
-  free(bc);
+  free(bc->score); free(bc);
 
   gzFile fp = opt->ks->f->f;
   kseq_destroy(opt->ks);
