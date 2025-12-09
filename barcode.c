@@ -24,8 +24,8 @@ bseq1_t *bseq_read(kseq_t *ks, int chunk_size, int *n_)
     s = &seqs[n];
     s->name = strdup(ks->name.s); s->seq = strdup(ks->seq.s);
     s->l_name = ks->name.l; s->l_seq = ks->seq.l;
-    if (ks->qual.s)  s->qual = strdup(ks->qual.s), s->l_qual = ks->qual.l;
-    if (ks->comment.s) s->comment = strdup(ks->comment.s), s->l_comment = ks->comment.l;
+    if (ks->qual.l)  s->qual = strdup(ks->qual.s), s->l_qual = ks->qual.l;
+    if (ks->comment.l) s->comment = strdup(ks->comment.s), s->l_comment = ks->comment.l;
     s->score1 = s->score2 = 0;
     size += seqs[n++].l_seq;
     if (size >= chunk_size) break;
@@ -144,9 +144,15 @@ static void *worker_pipeline(void *shared, int step, void *_data)
         sprintf(bc->buffer[s->idx] + bc->offset[s->idx], ">%s\n%s\n", s->name, s->seq);
         bc->offset[s->idx] += (s->l_name + s->l_seq + 3);
       } else {
-        sprintf(bc->buffer[s->idx] + bc->offset[s->idx], "@%s %s\n%s\n+\n%s\n", \
-        s->name, s->comment, s->seq, s->qual);
-        bc->offset[s->idx] += (s->l_name + s->l_seq + s->l_qual + s->l_comment + 7);
+        if (s->l_comment) {
+          sprintf(bc->buffer[s->idx] + bc->offset[s->idx], "@%s %s\n%s\n+\n%s\n", \
+          s->name, s->comment, s->seq, s->qual);
+          bc->offset[s->idx] += (s->l_name + s->l_seq + s->l_qual + s->l_comment + 7);
+        } else {
+          sprintf(bc->buffer[s->idx] + bc->offset[s->idx], "@%s\n%s\n+\n%s\n", \
+          s->name, s->seq, s->qual);
+          bc->offset[s->idx] += (s->l_name + s->l_seq + s->l_qual + 6);
+        }
       }
       if (bc->offset[s->idx] > WRITESIZE) {
         bc->buffer[s->idx][bc->offset[s->idx]] = '\0';
