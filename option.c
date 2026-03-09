@@ -23,8 +23,7 @@ void opt_set_mat(int match, int mismatch, int8_t mat[25])
   int i, j, k;
   for (i = k = 0; i < 4; ++i) {
     for (j = 0; j < 4; ++j)
-      mat[k++] = i == j? match : -mismatch;
-      mat[k++] = 0;
+      mat[k++] = i == j ? match : -mismatch;
   }
   for (j = 0; j < 5; ++j) mat[k++] = 0;
 }

@@ -47,13 +47,22 @@ void aln_core(char *seq, opt_t *opt, int *idx, int *strand, int *score)
   profile = ssw_init(nt, opt->LEN, opt->mat, 5, 2);
 
   for(i = 0; i < num; i++) {
+    // Check forward strand
     result = ssw_align(profile, bc->nt[i], bc->len[i], opt->open, opt->ext, 0, 0, 0, opt->MASK_LEN);
-    if (result->score1 > *score)  *idx = i, *strand = 0, *score = result->score1;
+    if (result->score1 > *score) {
+      *idx = i;
+      *strand = 0;
+      *score = result->score1;
+    }
     align_destroy(result);
-  }
-  for(i = 0; i < num; i++) {
+
+    // Check reverse complement strand
     result = ssw_align(profile, bc->nt_rc[i], bc->len[i], opt->open, opt->ext, 0, 0, 0, opt->MASK_LEN);
-    if (result->score1 > *score)  *idx = i, *strand = 1, *score = result->score1;
+    if (result->score1 > *score) {
+      *idx = i;
+      *strand = 1;
+      *score = result->score1;
+    }
     align_destroy(result);
   }
 
@@ -61,18 +70,17 @@ void aln_core(char *seq, opt_t *opt, int *idx, int *strand, int *score)
   free(nt);
 }
 
-void aln_barcode(opt_t *opt, bseq1_t *seq)
+void aln_barcode(opt_t *opt, bseq1_t *seq, char *front_buf, char *rear_buf)
 {
   seq->idx = opt->bc->file_num;
   if (seq->l_seq <= opt->LEN) return;
 
-  char *front = (char *)calloc(opt->LEN + 1, sizeof(char));
-  char *rear = (char *)calloc(opt->LEN + 1, sizeof(char));
-  memcpy(front, seq->seq, opt->LEN);
-  memcpy(rear, seq->seq + seq->l_seq - opt->LEN, opt->LEN);
-  aln_core(front, opt, &seq->idx1, &seq->strand1, &seq->score1);
-  aln_core(rear, opt, &seq->idx2, &seq->strand2, &seq->score2);
-  free(front); free(rear);
+  memcpy(front_buf, seq->seq, opt->LEN);
+  front_buf[opt->LEN] = '\0';
+  memcpy(rear_buf, seq->seq + seq->l_seq - opt->LEN, opt->LEN);
+  rear_buf[opt->LEN] = '\0';
+  aln_core(front_buf, opt, &seq->idx1, &seq->strand1, &seq->score1);
+  aln_core(rear_buf, opt, &seq->idx2, &seq->strand2, &seq->score2);
 
   if (opt->dual) {
     if (seq->score1 > opt->score && seq->score2 > opt->score) {
@@ -102,17 +110,19 @@ void aln_barcode(opt_t *opt, bseq1_t *seq)
 void kt_for(int n_threads, void (*func)(void*,long,int), void *data, long n);
 void kt_pipeline(int n_threads, void *(*func)(void*, int, void*), void *shared_data, int n_steps);
 
-typedef struct 
+typedef struct
 {
   int n_seqs;
   bseq1_t *seqs;
   opt_t *opt;
+  char *front;
+  char *rear;
 } data_for_t;
 
 static void worker_for(void *_data, long i, int tid)
 {
   data_for_t *data = (data_for_t*)_data;
-  aln_barcode(data->opt, &data->seqs[i]);
+  aln_barcode(data->opt, &data->seqs[i], data->front, data->rear);
 }
 
 static void *worker_pipeline(void *shared, int step, void *_data)
@@ -124,8 +134,12 @@ static void *worker_pipeline(void *shared, int step, void *_data)
     ret = calloc(1, sizeof(data_for_t));
     ret->seqs = bseq_read(opt->ks, opt->chunk_size, &ret->n_seqs);
     ret->opt = opt;
+    ret->front = malloc(opt->LEN + 1);
+    ret->rear = malloc(opt->LEN + 1);
     if (ret->seqs) return ret;
-    else free(ret);
+    free(ret->front);
+    free(ret->rear);
+    free(ret);
   } else if (step == 1) {
     data_for_t *data = (data_for_t*)_data;
     kt_for(opt->n_threads, worker_for, data, data->n_seqs);
@@ -165,6 +179,8 @@ static void *worker_pipeline(void *shared, int step, void *_data)
       if (s->comment) free(s->comment);
       if (s->qual)  free(s->qual);
     }
+    free(data->front);
+    free(data->rear);
     free(data->seqs); free(data);
   }
   return 0;
